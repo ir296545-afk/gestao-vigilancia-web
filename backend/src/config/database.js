@@ -1,7 +1,8 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
 
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
 
 const conectarBanco = async () => {
     try {
