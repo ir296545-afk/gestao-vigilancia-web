@@ -1,4 +1,5 @@
 const express = require("express");
+const autenticar = require("../middlewares/authMiddleware");
 
 const {
     criarEstabelecimento,
@@ -10,10 +11,10 @@ const {
 
 const router = express.Router();
 
-router.post("/", criarEstabelecimento);
+router.post("/", autenticar, criarEstabelecimento);
 router.get("/", listarEstabelecimentos);
 router.get("/:id", buscarEstabelecimentoPorId);
-router.put("/:id", atualizarEstabelecimento);
-router.delete("/:id", excluirEstabelecimento);
+router.put("/:id", autenticar, atualizarEstabelecimento);
+router.delete("/:id", autenticar, excluirEstabelecimento);
 
 module.exports = router;
