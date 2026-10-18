@@ -1,11 +1,13 @@
 import { useState } from "react";
 import axios from "axios";
+import Estabelecimentos from "./components/Estabelecimentos";
 
 function App() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const [autenticado, setAutenticado] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,6 +27,7 @@ function App() {
       localStorage.setItem("token", resposta.data.token);
 
       setMensagem("Login realizado com sucesso!");
+      setAutenticado(true);
     } catch (error) {
       if (error.response) {
         setMensagem(error.response.data.mensagem);
@@ -35,7 +38,9 @@ function App() {
       setCarregando(false);
     }
   };
-
+  if (autenticado) {
+    return <Estabelecimentos />;
+  }
   return (
     <div className="login-container">
       <div className="login-card">
