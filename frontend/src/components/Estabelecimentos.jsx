@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Enderecos from "./Enderecos";
 
 const API_URL = "http://localhost:3000/api/estabelecimentos";
 
@@ -22,6 +23,7 @@ function Estabelecimentos() {
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
+  const [estabelecimentoEndereco, setEstabelecimentoEndereco] = useState(null);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
@@ -45,7 +47,7 @@ function Estabelecimentos() {
     return token;
   };
 
-  // CADASTRAR OU ATUALIZAR
+  // CADASTRAR OU ATUALIZAR ESTABELECIMENTO
   const handleSalvar = async (e) => {
     e.preventDefault();
 
@@ -75,6 +77,10 @@ function Estabelecimentos() {
           anteriores.map((item) =>
             item._id === editandoId ? resposta.data : item
           )
+        );
+
+        setEstabelecimentoEndereco((anterior) =>
+          anterior?._id === editandoId ? resposta.data : anterior
         );
 
         setMensagem("Estabelecimento atualizado com sucesso!");
@@ -166,6 +172,10 @@ function Estabelecimentos() {
         setEditandoId(null);
       }
 
+      if (estabelecimentoEndereco?._id === estabelecimento._id) {
+        setEstabelecimentoEndereco(null);
+      }
+
       setMensagem("Estabelecimento excluído com sucesso!");
     } catch (error) {
       setErro(
@@ -175,6 +185,18 @@ function Estabelecimentos() {
     } finally {
       setExcluindoId(null);
     }
+  };
+
+  // ABRIR OU FECHAR ENDEREÇOS
+  const handleEnderecos = (estabelecimento) => {
+    setEstabelecimentoEndereco((anterior) =>
+      anterior?._id === estabelecimento._id
+        ? null
+        : estabelecimento
+    );
+
+    setErro("");
+    setMensagem("");
   };
 
   // LISTAR ESTABELECIMENTOS
@@ -217,7 +239,8 @@ function Estabelecimentos() {
         {campos.slice(0, 5).map((campo) => (
           <div className="campo" key={campo.nome}>
             <label htmlFor={campo.nome}>
-              {campo.titulo}{campo.obrigatorio ? " *" : ""}
+              {campo.titulo}
+              {campo.obrigatorio ? " *" : ""}
             </label>
 
             <input
@@ -234,6 +257,7 @@ function Estabelecimentos() {
 
         <div className="campo">
           <label htmlFor="tipo_documento">Tipo de documento</label>
+
           <select
             id="tipo_documento"
             name="tipo_documento"
@@ -343,13 +367,26 @@ function Estabelecimentos() {
                   <td>{estabelecimento.categoria}</td>
                   <td>{estabelecimento.cnae}</td>
 
-                  <td style={{ minWidth: "130px" }}>
+                  <td style={{ minWidth: "150px" }}>
                     <button
                       type="button"
                       onClick={() => handleEditar(estabelecimento)}
                       style={{ marginBottom: "6px" }}
                     >
                       Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleEnderecos(estabelecimento)}
+                      style={{
+                        marginBottom: "6px",
+                        backgroundColor: "#2563eb",
+                      }}
+                    >
+                      {estabelecimentoEndereco?._id === estabelecimento._id
+                        ? "Fechar endereços"
+                        : "Endereços"}
                     </button>
 
                     <button
@@ -367,6 +404,27 @@ function Estabelecimentos() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {estabelecimentoEndereco && (
+        <div style={{ marginTop: "30px" }}>
+          <Enderecos
+            key={estabelecimentoEndereco._id}
+            estabelecimentoId={estabelecimentoEndereco._id}
+            nomeEstabelecimento={estabelecimentoEndereco.nome_fantasia}
+          />
+
+          <button
+            type="button"
+            onClick={() => setEstabelecimentoEndereco(null)}
+            style={{
+              marginTop: "15px",
+              backgroundColor: "#6b7280",
+            }}
+          >
+            Fechar endereços
+          </button>
         </div>
       )}
     </div>

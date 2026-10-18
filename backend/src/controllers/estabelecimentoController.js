@@ -1,4 +1,7 @@
+
+const mongoose = require("mongoose");
 const Estabelecimento = require("../models/Estabelecimento");
+const Endereco = require("../models/Endereco");
 
 // CREATE - Cadastrar um novo estabelecimento
 const criarEstabelecimento = async (req, res) => {
@@ -31,6 +34,12 @@ const listarEstabelecimentos = async (req, res) => {
 // READ - Buscar um estabelecimento pelo ID
 const buscarEstabelecimentoPorId = async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                mensagem: "ID do estabelecimento inválido"
+            });
+        }
+
         const estabelecimento = await Estabelecimento.findById(req.params.id);
 
         if (!estabelecimento) {
@@ -41,7 +50,7 @@ const buscarEstabelecimentoPorId = async (req, res) => {
 
         return res.status(200).json(estabelecimento);
     } catch (erro) {
-        return res.status(400).json({
+        return res.status(500).json({
             mensagem: "Erro ao buscar estabelecimento",
             erro: erro.message
         });
@@ -51,6 +60,12 @@ const buscarEstabelecimentoPorId = async (req, res) => {
 // UPDATE - Atualizar um estabelecimento
 const atualizarEstabelecimento = async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                mensagem: "ID do estabelecimento inválido"
+            });
+        }
+
         const estabelecimento = await Estabelecimento.findByIdAndUpdate(
             req.params.id,
             req.body,
@@ -75,12 +90,16 @@ const atualizarEstabelecimento = async (req, res) => {
     }
 };
 
-// DELETE - Excluir um estabelecimento
+// DELETE - Excluir estabelecimento somente se não possuir endereços
 const excluirEstabelecimento = async (req, res) => {
     try {
-        const estabelecimento = await Estabelecimento.findByIdAndDelete(
-            req.params.id
-        );
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                mensagem: "ID do estabelecimento inválido"
+            });
+        }
+
+        const estabelecimento = await Estabelecimento.findById(req.params.id);
 
         if (!estabelecimento) {
             return res.status(404).json({
@@ -88,11 +107,25 @@ const excluirEstabelecimento = async (req, res) => {
             });
         }
 
+        // Verificar se existem endereços vinculados
+        const possuiEndereco = await Endereco.exists({
+            estabelecimento: estabelecimento._id
+        });
+
+        if (possuiEndereco) {
+            return res.status(409).json({
+                mensagem:
+                    "Este estabelecimento possui endereços cadastrados. Exclua os endereços antes de excluir o estabelecimento."
+            });
+        }
+
+        await Estabelecimento.findByIdAndDelete(estabelecimento._id);
+
         return res.status(200).json({
             mensagem: "Estabelecimento excluído com sucesso"
         });
     } catch (erro) {
-        return res.status(400).json({
+        return res.status(500).json({
             mensagem: "Erro ao excluir estabelecimento",
             erro: erro.message
         });
