@@ -1,9 +1,10 @@
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import Enderecos from "./Enderecos";
 
-const API_URL = "http://localhost:3000/api/estabelecimentos";
+const API_URL = "/api/estabelecimentos";
 
 const formularioInicial = {
   nome_fantasia: "",
@@ -17,15 +18,20 @@ const formularioInicial = {
 };
 
 function Estabelecimentos() {
-  const [formulario, setFormulario] = useState({ ...formularioInicial });
+  const [formulario, setFormulario] = useState({
+    ...formularioInicial,
+  });
   const [estabelecimentos, setEstabelecimentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
-  const [estabelecimentoEndereco, setEstabelecimentoEndereco] = useState(null);
+  const [estabelecimentoEndereco, setEstabelecimentoEndereco] =
+    useState(null);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
+
+  const { usuario, logout } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -36,41 +42,19 @@ function Estabelecimentos() {
     }));
   };
 
-  const obterToken = () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setErro("Sessão não encontrada. Faça login novamente.");
-      return null;
-    }
-
-    return token;
-  };
-
   // CADASTRAR OU ATUALIZAR ESTABELECIMENTO
   const handleSalvar = async (e) => {
     e.preventDefault();
 
     setErro("");
     setMensagem("");
-
-    const token = obterToken();
-    if (!token) return;
-
     setSalvando(true);
 
     try {
-      const configuracao = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-
       if (editandoId) {
-        const resposta = await axios.put(
+        const resposta = await api.put(
           `${API_URL}/${editandoId}`,
-          formulario,
-          configuracao
+          formulario
         );
 
         setEstabelecimentos((anteriores) =>
@@ -85,11 +69,7 @@ function Estabelecimentos() {
 
         setMensagem("Estabelecimento atualizado com sucesso!");
       } else {
-        const resposta = await axios.post(
-          API_URL,
-          formulario,
-          configuracao
-        );
+        const resposta = await api.post(API_URL, formulario);
 
         setEstabelecimentos((anteriores) => [
           ...anteriores,
@@ -145,20 +125,11 @@ function Estabelecimentos() {
 
     setErro("");
     setMensagem("");
-
-    const token = obterToken();
-    if (!token) return;
-
     setExcluindoId(estabelecimento._id);
 
     try {
-      await axios.delete(
-        `${API_URL}/${estabelecimento._id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      await api.delete(
+        `${API_URL}/${estabelecimento._id}`
       );
 
       setEstabelecimentos((anteriores) =>
@@ -201,25 +172,48 @@ function Estabelecimentos() {
 
   // LISTAR ESTABELECIMENTOS
   useEffect(() => {
+    let ativo = true;
+
     async function carregarEstabelecimentos() {
       try {
-        const resposta = await axios.get(API_URL);
-        setEstabelecimentos(resposta.data);
+        const resposta = await api.get(API_URL);
+
+        if (ativo) {
+          setEstabelecimentos(resposta.data);
+        }
       } catch (error) {
-        setErro("Não foi possível carregar os estabelecimentos.");
+        if (ativo) {
+          setErro(
+            error.response?.data?.mensagem ||
+              "Não foi possível carregar os estabelecimentos."
+          );
+        }
       } finally {
-        setCarregando(false);
+        if (ativo) {
+          setCarregando(false);
+        }
       }
     }
 
     carregarEstabelecimentos();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   const campos = [
-    { nome: "nome_fantasia", titulo: "Nome fantasia", obrigatorio: true },
+    {
+      nome: "nome_fantasia",
+      titulo: "Nome fantasia",
+      obrigatorio: true,
+    },
     { nome: "razao_social", titulo: "Razão social" },
     { nome: "categoria", titulo: "Categoria" },
-    { nome: "atividade_principal", titulo: "Atividade principal" },
+    {
+      nome: "atividade_principal",
+      titulo: "Atividade principal",
+    },
     { nome: "tipo_atividade", titulo: "Tipo de atividade" },
     { nome: "documento", titulo: "Número do documento" },
     { nome: "cnae", titulo: "CNAE" },
@@ -228,6 +222,29 @@ function Estabelecimentos() {
   return (
     <div style={{ padding: "30px" }}>
       <h1>Gestão da Vigilância Sanitária</h1>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+          marginBottom: "25px",
+        }}
+      >
+        <p>
+          Usuário: {usuario?.nome || usuario?.email || "Autenticado"}
+        </p>
+
+        <button
+          type="button"
+          onClick={logout}
+          style={{ backgroundColor: "#b91c1c" }}
+        >
+          Sair
+        </button>
+      </div>
 
       <h2 style={{ marginTop: "25px", marginBottom: "20px" }}>
         {editandoId
@@ -256,7 +273,9 @@ function Estabelecimentos() {
         ))}
 
         <div className="campo">
-          <label htmlFor="tipo_documento">Tipo de documento</label>
+          <label htmlFor="tipo_documento">
+            Tipo de documento
+          </label>
 
           <select
             id="tipo_documento"
@@ -321,7 +340,7 @@ function Estabelecimentos() {
       )}
 
       {erro && (
-        <p style={{ color: "red", marginTop: "15px" }}>
+        <p role="alert" style={{ color: "red", marginTop: "15px" }}>
           {erro}
         </p>
       )}
@@ -384,7 +403,8 @@ function Estabelecimentos() {
                         backgroundColor: "#2563eb",
                       }}
                     >
-                      {estabelecimentoEndereco?._id === estabelecimento._id
+                      {estabelecimentoEndereco?._id ===
+                      estabelecimento._id
                         ? "Fechar endereços"
                         : "Endereços"}
                     </button>
@@ -412,7 +432,9 @@ function Estabelecimentos() {
           <Enderecos
             key={estabelecimentoEndereco._id}
             estabelecimentoId={estabelecimentoEndereco._id}
-            nomeEstabelecimento={estabelecimentoEndereco.nome_fantasia}
+            nomeEstabelecimento={
+              estabelecimentoEndereco.nome_fantasia
+            }
           />
 
           <button
