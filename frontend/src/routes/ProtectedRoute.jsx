@@ -3,9 +3,9 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function ProtectedRoute() {
-  const { autenticado, carregando } = useAuth();
+  const { autenticado, carregandoAuth } = useAuth();
 
-  if (carregando) {
+  if (carregandoAuth) {
     return <p>Verificando autenticação...</p>;
   }
 
